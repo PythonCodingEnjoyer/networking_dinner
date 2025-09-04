@@ -13,9 +13,9 @@ const nameInput = document.getElementById('nameInput');
 const phoneInput = document.getElementById('phoneInput');
 
 btnShare.addEventListener('click', () => {
-  // Request phone sharing via WebApp API (simulate confirm dialog)
-  // Telegram does not auto-ask phone; we send a signal to bot to ask for contact or use profile data
+  btnShare.disabled = true;
   sendData({ action: 'share_phone_request' });
+  setTimeout(()=>{ btnShare.disabled = false; }, 1200);
 });
 
 btnManual.addEventListener('click', () => {
@@ -28,12 +28,14 @@ cancelManual.addEventListener('click', () => {
 
 manualForm.addEventListener('submit', (e) => {
   e.preventDefault();
-  const payload = {
-    action: 'manual_phone_submit',
-    name: (nameInput.value || '').trim(),
-    phone: (phoneInput.value || '').trim(),
-  };
-  if (!payload.name || !payload.phone) return;
+  const name = (nameInput.value || '').trim();
+  const phone = (phoneInput.value || '').trim();
+  if (!name || !phone) return;
+  if (!/^\+?[0-9\-\s()]{7,20}$/.test(phone)) {
+    alert('Введите корректный номер телефона');
+    return;
+  }
+  const payload = { action: 'manual_phone_submit', name, phone };
   sendData(payload);
 });
 
@@ -44,5 +46,24 @@ function sendData(obj) {
     alert('Telegram WebApp API недоступен.');
   }
 }
+
+// Load Lottie TGS (animated sticker) if provided
+(function initLottie(){
+  try{
+    const el = document.getElementById('logoLottie');
+    if(!el) return;
+    // TGS is gzipped JSON; lottie-web player can load JSON, so we fetch, ungzip, and feed the JSON
+    fetch('./assets/duck.tgs')
+      .then(r=>r.arrayBuffer())
+      .then(buf=>{
+        const inflated = pako.ungzip(new Uint8Array(buf), {to: 'string'});
+        const json = JSON.parse(inflated);
+        lottie.loadAnimation({ container: el, renderer: 'svg', loop: true, autoplay: true, animationData: json });
+      })
+      .catch(()=>{
+        el.innerText = '🦆';
+      });
+  }catch{ /* noop */ }
+})();
 
 
